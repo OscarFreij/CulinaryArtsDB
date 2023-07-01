@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
+use function PHPUnit\Framework\isNull;
+
 class ImageController extends Controller
 {
     /**
@@ -56,7 +58,7 @@ class ImageController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Image $image)
+    public function show(Request $request)
     {
         //
     }
@@ -84,14 +86,27 @@ class ImageController extends Controller
     {
         //
         $image = Image::find($request->id);
-        
-        Image::destroy($image->id);
-        if(Storage::disk('public')->exists($image->filename)){
-            Storage::disk('public')->delete($image->filename);
-        }else{
-            dd('File not found.');
+
+        //dd($image);
+        if (isset($image->id))
+        {
+            if ($image->user_id == Auth::user()->id)
+            {
+                Image::destroy($image->id);
+                if(Storage::disk('public')->exists($image->filename)){
+                    Storage::disk('public')->delete($image->filename);
+                }else{
+                    abort(404, "The image file was not found but the record was deleted.");
+                }
+                return back()
+                    ->with('success','You have successfully deleted image with id '.$image->id.'.');
+            }else{
+                abort(401, "Unable to delete image, user unauthorized.");
+            }
         }
-        return back()
-            ->with('success','You have successfully deleted image with id '.$image->id.'.');
+        else
+        {
+            abort(404, "The image file was not found.");
+        }
     }
 }
